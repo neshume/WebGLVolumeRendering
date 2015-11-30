@@ -18,9 +18,6 @@ var guiControls;
 var materialSecondPass;
 var controls;
 
-init();
-animate();
-
 
 TESLA.init = function() {
 
@@ -50,7 +47,7 @@ TESLA.init = function() {
     cubeTextures['teapot'] = THREE.ImageUtils.loadTexture('teapot.raw.png');
     cubeTextures['foot'] = THREE.ImageUtils.loadTexture('foot.raw.png');
 
-    var transferTexture = updateTransferFunction();
+    var transferTexture = TESLA.updateTransferFunction();
 
     var screenSize = new THREE.Vector2( window.innerWidth, window.innerHeight );
     rtTexture = new THREE.WebGLRenderTarget( screenSize.x, screenSize.y, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBFormat, type: THREE.FloatType } );
@@ -58,14 +55,14 @@ TESLA.init = function() {
     rtTexture.wrapS = rtTexture.wrapT = THREE.ClampToEdgeWrapping;
 
     var materialFirstPass = new THREE.ShaderMaterial( {
-        vertexShader:'./shaders/firstPaaa.vert',
-        fragmentShader: './shaders/firstPass.frag',
+        vertexShader: document.getElementById( 'vertexShaderFirstPass' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShaderFirstPass' ).textContent,
         side: THREE.BackSide
     } );
 
     materialSecondPass = new THREE.ShaderMaterial( {
-        vertexShader: './shaders/secondPass.vert',
-        fragmentShader: './shaders/secondPass.frag',
+        vertexShader: document.getElementById( 'vertexShaderSecondPass' ).textContent,
+        fragmentShader: document.getElementById( 'fragmentShaderSecondPass' ).textContent,
         side: THREE.FrontSide,
         uniforms: {	tex:  { type: "t", value: rtTexture },
             cubeTex:  { type: "t", value: cubeTextures['bonsai'] },
@@ -73,6 +70,7 @@ TESLA.init = function() {
             steps : {type: "1f" , value: guiControls.steps },
             alphaCorrection : {type: "1f" , value: guiControls.alphaCorrection }}
     });
+
 
     sceneFirstPass = new THREE.Scene();
     sceneSecondPass = new THREE.Scene();
@@ -107,20 +105,20 @@ TESLA.init = function() {
     var step1Folder = gui.addFolder('Step 1');
     var controllerColor1 = step1Folder.addColor(guiControls, 'color1');
     var controllerStepPos1 = step1Folder.add(guiControls, 'stepPos1', 0.0, 1.0);
-    controllerColor1.onChange(updateTextures);
-    controllerStepPos1.onChange(updateTextures);
+    controllerColor1.onChange(TESLA.updateTextures);
+    controllerStepPos1.onChange(TESLA.updateTextures);
 
     var step2Folder = gui.addFolder('Step 2');
     var controllerColor2 = step2Folder.addColor(guiControls, 'color2');
     var controllerStepPos2 = step2Folder.add(guiControls, 'stepPos2', 0.0, 1.0);
-    controllerColor2.onChange(updateTextures);
-    controllerStepPos2.onChange(updateTextures);
+    controllerColor2.onChange(TESLA.updateTextures);
+    controllerStepPos2.onChange(TESLA.updateTextures);
 
     var step3Folder = gui.addFolder('Step 3');
     var controllerColor3 = step3Folder.addColor(guiControls, 'color3');
     var controllerStepPos3 = step3Folder.add(guiControls, 'stepPos3', 0.0, 1.0);
-    controllerColor3.onChange(updateTextures);
-    controllerStepPos3.onChange(updateTextures);
+    controllerColor3.onChange(TESLA.updateTextures);
+    controllerStepPos3.onChange(TESLA.updateTextures);
 
     step1Folder.open();
     step2Folder.open();
@@ -133,9 +131,69 @@ TESLA.init = function() {
 
 }
 
-function updateTextures(value)
+TESLA.updateTextures = function(value)
 {
-    materialSecondPass.uniforms.transferTex.value = updateTransferFunction();
+    materialSecondPass.uniforms.transferTex.value = TESLA.updateTransferFunction();
+}
+
+
+TESLA.updateTransferFunction = function()
+{
+    var canvas = document.createElement('canvas');
+    canvas.height = 20;
+    canvas.width = 256;
+
+    var ctx = canvas.getContext('2d');
+
+    var grd = ctx.createLinearGradient(0, 0, canvas.width -1 , canvas.height - 1);
+    grd.addColorStop(guiControls.stepPos1, guiControls.color1);
+    grd.addColorStop(guiControls.stepPos2, guiControls.color2);
+    grd.addColorStop(guiControls.stepPos3, guiControls.color3);
+
+    ctx.fillStyle = grd;
+    ctx.fillRect(0,0,canvas.width -1 ,canvas.height -1 );
+
+    var img = document.getElementById("transferFunctionImg");
+    img.src = canvas.toDataURL();
+    img.style.width = "256 px";
+    img.style.height = "128 px";
+
+    transferTexture =  new THREE.Texture(canvas);
+    transferTexture.wrapS = transferTexture.wrapT =  THREE.ClampToEdgeWrapping;
+    transferTexture.needsUpdate = true;
+
+    return transferTexture;
+}
+
+onWindowResize = function( event ) {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+TESLA.animate = function()
+{
+
+    requestAnimationFrame( TESLA.animate );
+
+    TESLA.render();
+    stats.update();
+}
+
+TESLA.render = function() {
+
+    var delta = clock.getDelta();
+
+    //Render first pass and store the world space coords of the back face fragments into the texture.
+    renderer.render( sceneFirstPass, camera, rtTexture, true );
+
+    //Render the second pass and perform the volume rendering.
+    renderer.render( sceneSecondPass, camera );
+
+    materialSecondPass.uniforms.steps.value = guiControls.steps;
+    materialSecondPass.uniforms.alphaCorrection.value = guiControls.alphaCorrection;
 }
 
 
