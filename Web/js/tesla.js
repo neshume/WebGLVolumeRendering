@@ -11,7 +11,7 @@ var camera, sceneFirstPass, sceneSecondPass, renderer;
 
 var clock = new THREE.Clock();
 var rtTexture, transferTexture;
-var cubeTextures = ['bonsai', 'foot', 'teapot'];
+var cubeTextures = ['heart'];
 var histogram = [];
 var guiControls;
 
@@ -43,9 +43,8 @@ TESLA.init = function() {
     controls.center.set( 0.0, 0.0, 0.0 );
 
     //Load the 2D texture containing the Z slices.
-    cubeTextures['bonsai'] = THREE.ImageUtils.loadTexture('bonsai.raw.png');
-    cubeTextures['teapot'] = THREE.ImageUtils.loadTexture('teapot.raw.png');
-    cubeTextures['foot'] = THREE.ImageUtils.loadTexture('foot.raw.png');
+    cubeTextures['heart'] = THREE.ImageUtils.loadTexture('heartResult.png');
+
 
     var transferTexture = TESLA.updateTransferFunction();
 
@@ -65,7 +64,7 @@ TESLA.init = function() {
         fragmentShader: document.getElementById( 'fragmentShaderSecondPass' ).textContent,
         side: THREE.FrontSide,
         uniforms: {	tex:  { type: "t", value: rtTexture },
-            cubeTex:  { type: "t", value: cubeTextures['bonsai'] },
+            cubeTex:  { type: "t", value: cubeTextures['heart'] },
             transferTex:  { type: "t", value: transferTexture },
             steps : {type: "1f" , value: guiControls.steps },
             alphaCorrection : {type: "1f" , value: guiControls.alphaCorrection }}
@@ -94,7 +93,7 @@ TESLA.init = function() {
 
 
     var gui = new dat.GUI();
-    var modelSelected = gui.add(guiControls, 'model', [ 'bonsai', 'foot', 'teapot' ] );
+    var modelSelected = gui.add(guiControls, 'model', [ 'heart'] );
     gui.add(guiControls, 'steps', 0.0, 512.0);
     gui.add(guiControls, 'alphaCorrection', 0.01, 5.0).step(0.01);
 
